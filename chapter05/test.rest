@@ -1,0 +1,11 @@
+POST http://localhost:5000/sign-up
+Content-Type: application/json
+
+{
+  "name": "송은우",
+  "email": "songew@gmail.com",
+  "password": "test1234",
+  "profile": "software engineer. book author"
+}
+
+###
