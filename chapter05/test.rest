@@ -1,3 +1,12 @@
+POST http://localhost:5000/tweet
+Content-Type: application/json
+
+{
+  "id": 1,
+  "tweet": "My First Tweet"
+}
+
+###
 POST http://localhost:5000/sign-up
 Content-Type: application/json
 
