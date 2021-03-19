@@ -87,3 +87,36 @@ FLASK_APP=app.py FLASK_DEBUG=1 flask run
 - 엔드포인트 아키텍쳐 패턴
     - REST 방식
     - GraphQL
+  
+# 챕터 5. 본격적으로 API 개발하기
+
+- 구현할 API 시스템은 미니 트위터 (회원가입, 로그인, 트윗, 다른 회원 팔로우, 언팔로우, 타임라인)
+
+## 회원가입
+
+- 회원 가입시 필요 정보 (id, name, email, password, profile)
+
+```python
+from flask import Flask, jsonify, request
+
+app = Flask(__name__)
+app.users = {}          # 새로 가입한 사용자 users란 변수에 정의 한다.
+app.id_count = 1        # 회원 가입하는 사용자의 id 값을 저장
+
+@app.route("/ping", methods=['GET'])
+def ping():
+    return "pong"
+
+@app.route("/sign-up", methods=['POST'])
+def sign_up():
+    new_user = request.json  # json -> dictionary
+    new_user["id"] = app.id_count
+    app.users[app.id_count] = new_user
+    app.id_count = app.id_count + 1
+
+    return jsonify(new_user)  # dictionary -> json
+```
+
+- postman을 사용한 정보 전송 or 파이참 기능 사용
+- [https://www.jetbrains.com/help/pycharm/http-client-in-product-code-editor.html#composing-http-requests](https://www.jetbrains.com/help/pycharm/http-client-in-product-code-editor.html#composing-http-requests)
+- 카운트 증가 해주는 부분은 문제 발생 소지 있음 (atomic 검색)
