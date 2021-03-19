@@ -53,3 +53,13 @@ def ping():
 ```
 
 - flask는 일반적으로 route 데코레이터를 사용해서 함수들을 엔드포인트로 등록하는 방식이 사용된다.
+
+## API 실행하기
+
+```python
+FLASK_APP=app.py FLASK_DEBUG=1 flask run
+```
+
+- 실행의 경우도 파이참에서는 쉽게 실행할 수 있다.
+- [http://127.0.0.1:5000/ping](http://127.0.0.1:5000/ping) 로 접속
+- 책에서 접속 테스트를 httpie를 사용하여 진행함.
