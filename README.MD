@@ -63,3 +63,27 @@ FLASK_APP=app.py FLASK_DEBUG=1 flask run
 - 실행의 경우도 파이참에서는 쉽게 실행할 수 있다.
 - [http://127.0.0.1:5000/ping](http://127.0.0.1:5000/ping) 로 접속
 - 책에서 접속 테스트를 httpie를 사용하여 진행함.
+
+# 챕터4. HTTP의 구조 및 핵심 요소
+
+- HTTP는 HTML을 주고 받을 수 있도록 만들어진 통신 규약이다.
+- HTTP의 특징 2가지 (요청과 응답 방식, stateless)
+    - 서버가 클라이언트로부터 요청을 받고 보냄
+    - 각각의 HTTP 통신은 서로 독립적이며 그 전에 처리된 HTTP 통신에 대해 알지 못한다.
+- 자주 사용되는 HTTP 메소드
+    - GET: 어떠한 데이터를 서버로부터 요청할때 주로 사용됨
+    - POST: 데이터를 생성하거나 수정 및 삭제 요청을 할 대 주로 사용됨
+    - OPTIONS
+    - PUT: 데이터를 새로 생성할 때 사용
+    - DELETE: 데이터 삭제
+- HTTP Status Code
+    - 200 OK: 문제없을 때
+    - 301 Moved Permanently: http 요청을 보낸 엔드포인트의 url 주소가 변경 됨.
+    - 400 Bad Request: HTTP 요처이 잘모된 요청일때
+    - 401 Unauthoried: 로그인이 필요한 경우
+    - 403 Forbidden: 요청에 대한 권한이 없을때
+    - 404 Not Found: uri가 존재하지 않을 경우
+    - 500 Internal Server Error: 내부 서버 오류
+- 엔드포인트 아키텍쳐 패턴
+    - REST 방식
+    - GraphQL
