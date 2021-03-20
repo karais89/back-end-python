@@ -1,3 +1,12 @@
+POST http://localhost:5000/unfollow
+Content-Type: application/json
+
+{
+  "id": 1,
+  "unfollow": 2
+}
+
+### follow
 POST http://localhost:5000/follow
 Content-Type: application/json
 
@@ -6,7 +15,7 @@ Content-Type: application/json
   "follow": 2
 }
 
-###
+### tweet
 POST http://localhost:5000/tweet
 Content-Type: application/json
 
@@ -15,7 +24,7 @@ Content-Type: application/json
   "tweet": "My First Tweet"
 }
 
-###
+### sign-up
 POST http://localhost:5000/sign-up
 Content-Type: application/json
 
