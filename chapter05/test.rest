@@ -1,3 +1,8 @@
+GET http://localhost:5000/timeline/1
+Accept: application/json
+
+### unfollow
+
 POST http://localhost:5000/unfollow
 Content-Type: application/json
 
@@ -22,6 +27,15 @@ Content-Type: application/json
 {
   "id": 1,
   "tweet": "My First Tweet"
+}
+
+### tweet
+POST http://localhost:5000/tweet
+Content-Type: application/json
+
+{
+  "id": 2,
+  "tweet": "언젠가는 훌륭한 백엔드 개발자가 될 거야"
 }
 
 ### sign-up

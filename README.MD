@@ -120,3 +120,138 @@ def sign_up():
 - postman을 사용한 정보 전송 or 파이참 기능 사용
 - [https://www.jetbrains.com/help/pycharm/http-client-in-product-code-editor.html#composing-http-requests](https://www.jetbrains.com/help/pycharm/http-client-in-product-code-editor.html#composing-http-requests)
 - 카운트 증가 해주는 부분은 문제 발생 소지 있음 (atomic 검색)
+
+## 300자 제한 트윗 글 올리기
+
+- 300자가 넘으면 400 Bad Request 응답
+- 300자 이내면 사용자의 글을 저장
+
+```python
+app.tweets = []
+
+@app.route('/tweet', methods=['POST'])
+def tweet():
+    payload = request.json
+    user_id = int(payload['id'])
+    tweet = payload['tweet']
+
+    if user_id not in app.users:
+        return '사용자가 존재하지 않습니다', 400
+
+    if len(tweet) > 300:
+        return '300자를 초과했습니다', 400
+
+    user_id = int(payload['id'])
+    app.tweets.append({
+        'user_id': user_id,
+        'tweet': tweet
+    })
+    
+    return '', 200
+```
+
+- 파이썬은 동적 타이핑 언어라 유연한 대신 코드의 실수 발생 가능성이 높다.
+    - app.tweets 처럼 바로 클래스 안에 변수를 생성 할 수 있는데. 이 부분이 참 마음에 안드는 부분 이다.
+- 우선 request 이후 200 응답이 온다면 OK.
+
+## 팔로우와 언팔로우
+
+```python
+@app.route('/follow', methods=['POST'])
+def follow():
+    payload = request.json
+    user_id = int(payload['id'])
+    user_id_to_follow = int(payload['follow'])
+
+    if user_id not in app.users or user_id_to_follow not in app.users:
+        return '사용자가 존재하지 않습니다', 400
+
+    user = app.users[user_id]
+    user.setdefault('follow', set()).add(user_id_to_follow)  # setdefault dictionary 기능
+
+    return jsonify(user)
+```
+
+- setdefault는 파이썬에서 제공해주는 dictionary의 기능
+- set 자료형을 사용하는데, 이 부분을 json 모듈이 json으로 변경하지 못해 에러가 발생하여 아래와 같이 처리해줘야 함.
+
+```python
+from flask.json import JSONEncoder
+
+class CustomJSONEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, set):
+            return list(obj)
+
+        return JSONEncoder.default(self, obj)
+
+app.json_encoder = CustomJSONEncoder
+```
+
+- jsonEncoder 클래스의 default 메소드를 확장한다. set인 경우 list로 변경한다.
+- 객체가 set이 아닌 경우는 기존 default 메소드를 호출한다.
+- [https://flask.palletsprojects.com/en/1.1.x/api/#flask.json.JSONEncoder](https://flask.palletsprojects.com/en/1.1.x/api/#flask.json.JSONEncoder)
+
+```python
+@app.route('/unfollow', methods=['POST'])
+def unfollow():
+    payload = request.json
+    user_id = int(payload['id'])
+    user_id_to_follow = int(payload['unfollow'])
+    
+    if user_id not in app.users or user_id_to_follow not in app.users:
+        return '사용자가 존재하지 않습니다', 400
+    
+    user = app.users[user_id]
+    user.setdefault('follow', set()).discard(user_id_to_follow)
+    
+    return jsonify(user)
+```
+
+- 언팔로우 구현 remove대신 discard를 사용하는 이유는 discard의 경우 없는 값을 삭제 해도 에러가 발생하지 않는다.
+
+## 타임라인
+
+- 해당 사용자의 트윗들 그리고 팔로우하는 사용자들의 트윗들을 리턴
+
+```python
+@app.route('/timeline/<int:user_id>', methods=['GET'])  # 엔드포인트 주소 <int:user_id> /timeline/1 같은 형태에서 1이 user_id에 저장됨
+def timeline(user_id):
+    if user_id not in app.users:
+        return '사용자가 존재하지 않습니다', 400
+
+    follow_list = app.users[user_id].get('follow', set())
+    follow_list.add(user_id)
+    timeline = [tweet for tweet in app.tweets if tweet['user_id'] in follow_list]
+
+    return jsonify({
+        'user_id': user_id,
+        'timeline': timeline
+    })
+```
+
+- `<int:user_id>` 부분 확인
+- `[tweet for tweet in app.tweets if tweet['user_id'] in follow_list]` 이건 파이썬 코드인데 가독성 최악 아닌가? 전체 트윗 중에 해당 사용자 그리고 해당 사용자가 팔로우하는 사용자들의 트윗들만 읽는다.
+- [List comprehension (리스트 내포 for문 사용)](https://www.w3schools.com/python/python_lists_comprehension.asp)
+
+    ```python
+    # [표현식 for 항목 in 반복가능객체 if 조건문]
+
+    a = [1,2,3,4]
+    result = []
+    for num in a:
+        result.append(num*3)
+
+    result = [num * 3 for num in a]
+    result = [num * 3 for num in a if num % 2 == 0]  # 짝수만 담고 싶을때
+    ```
+
+    ```python
+    timeline = [tweet for tweet in app.tweets if tweet['user_id'] in follow_list]
+
+    # 위와 같은 문장
+    timeline = []
+    for tweet in app.tweets:
+        if tweet['user_id'] in follow_list:
+            timeline.append(tweet)
+    ```
