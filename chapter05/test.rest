@@ -8,7 +8,7 @@ Content-Type: application/json
 
 {
   "id": 1,
-  "unfollow": 2
+  "unfollow": 3
 }
 
 ### follow
@@ -17,7 +17,7 @@ Content-Type: application/json
 
 {
   "id": 1,
-  "follow": 2
+  "follow": 3
 }
 
 ### tweet
@@ -49,4 +49,13 @@ Content-Type: application/json
   "profile": "software engineer. book author"
 }
 
-###
+###2
+POST http://localhost:5000/sign-up
+Content-Type: application/json
+
+{
+  "name": "송은우2",
+  "email": "songew2@gmail.com",
+  "password": "test1234",
+  "profile": "software engineer. book author2"
+}

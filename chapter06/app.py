@@ -14,6 +14,11 @@ def create_app(test_config=None):
     database = create_engine(app.config['DB_URL'], encoding='utf-8', max_overflow=0)
     app.database = database
 
+    # ping
+    @app.route("/ping", methods=['GET'])
+    def ping():
+        return "pong"
+
     # 회원가입 엔드포인트
     @app.route("/sign-up", methods=['POST'])
     def sign_up():
@@ -93,5 +98,29 @@ def create_app(test_config=None):
             'user_id': user_id,
             'timeline': timeline
         })
+
+    @app.route('/follow', methods=['POST'])
+    def follow():
+        payload = request.json
+        rowcount = current_app.database.execute(text("""
+                INSERT INTO users_follow_list (
+                    user_id,
+                    follow_user_id
+                ) VALUES (
+                    :id,
+                    :follow
+                )
+                """), payload).rowcount
+
+        return '', 200
+
+    @app.route('/unfollow', methods=['POST'])
+    def unfollow():
+        payload = request.json
+        rowcount = current_app.database.execute(text("""
+                        DELETE FROM users_follow_list WHERE user_id = :id AND follow_user_id = :unfollow
+                        """), payload).rowcount
+
+        return '', 200
 
     return app
