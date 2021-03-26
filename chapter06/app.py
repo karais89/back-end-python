@@ -125,7 +125,6 @@ def create_app(test_config=None):
         new_user = get_user(new_user_id)
 
         return jsonify(new_user)
-    
 
     @app.route('/tweet', methods=['POST'])
     def tweet():
