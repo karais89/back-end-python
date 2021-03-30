@@ -737,3 +737,154 @@ def create_app(test_config=None):
 ```
 
 - 데이터베이스에 SQL을 실행하는 로직들을 따로 함수로 만들어 작성.
+
+# Chapter7. 인증
+
+API에서는 기본적인 인증을 요구한다.
+
+## 인증
+
+- 인증은 사용자의 신원을 확인하는 절차다.
+- 로그인 기능을 구현하는 것이 인증 엔드포인트다.
+
+로그인 기능의 일반적인 인증 절차
+
+1. 사용자 가입 절차를 통해 아이디와 비밀번호 생성
+2. 가입한 아이디와 비밀번호를 DB에 저장. 사용자 비밀번호는 암호화 필수
+3. 사용자가 로그인할 때 본인의 아이디와 비밀번호를 입력
+4. 사용자가 입력한 비밀번호를 암호화한 후, 그 값을 이미 암호화되어 DB에 저장된 비밀번호화 비교
+5. 비밀번호 일치시 로그인 성공
+6. 로그인 성공시 백엔드 api 서버는 access token을 프론트엔드 혹은 클라이언트에게 전송한다.
+7. 프론트엔드 서버는 로그인 성공 후 다음부터 해당 사용자의 acces token을 첨부해서 request를 서버에 전송하여 사용한다.
+
+## 사용자 비밀번호 암호화
+
+암호화 이유
+
+- 외부의 해킹에 의한 데이터베이스의 노출
+- 내부 인력에 의한 데이터베이스의 노출
+
+> 사용자 비밀번호 암호화 할때는 단방향 해시 함수를 일반적으로 사용한다.
+
+단방향 해시 함수는 복호화를 할 수 없는 암호화 알고리즘이다.
+
+```python
+import hashlib
+m = hashlib.sha256()
+m.update(b"test password")
+m.hexdigest()
+```
+
+## Bcrypt 암호 알고리즘
+
+- 단방향 해시 알고리즘도 취약점이 존재한다.
+- 일반적으로 2가지 보완점을 사용
+    1. salting 이라는 방법
+        - 실제 비밀번호 이외에 추가적으로 랜덤 데이터를 더해 해시 값을 계산
+    2. key stretching 이라는 방법
+        - 단방향 해시 알고리즘을 계산한 후 그 해시 값을 또 해시하고 여러번 반복하는 방법
+- salting와 key stretching를 구현한 해시 함수 중 가장 널리 사용되는 것이 bcrypt이다.
+
+```python
+pip install bcrypt
+
+import bcrypt
+bcrypt.hashpw(b"secret password", bcrypt.gensalt())
+bcrypt.hashpw(b"secret password", bcrypt.gensalt()).hex
+```
+
+- 확인해보니 bcrypt는 salt값을 bcrypt.hashpw로 생성시 앞에 이미 저장을 함.
+    - salt 값이 해킹 당하면 어쩌지? 했는데 결국엔 외부에서는 rainbow attack 등으로 해킹하는 것이기때문에. DB 자체가 털리지 않는 이상은 괜찮은 것 같음.
+    - 그런데 만약 DB가 털린다? 그러면 salt는 알고 있으니.. 다른 방법을 이용해야 될 것 같은데.. 모르겟네. DB가 털려도 안전하려면 다른 방법을 이용해야 될 것 같은데 잘 모르겠다.
+
+## access token
+
+- 사용자가 로그인 성공 이후 백엔드 api 서버는 access token 이라고 하는 데이터를 프론트엔드에게 전송한다.
+- 그리고 프론트엔드에서는 해당 사용자의 access token을 http 요청에 첨부해서 서버에 전송한다.
+- http는 stateless다. 현재의 http 통신에서 이전에 이미 인증이 진행됐는지 알지 못한다. http 통신을 할 때에는 해당 http 요청을 처리하기 위해 필요한 모든 데이터를 첨부해서 요청을 보내야 한다.
+
+## JWT(JSON Web Token)
+
+- access token을 생성하는 방법 중 가장 널리 사용되는 기술 중 하나가 JWT이다.
+- JWT는 이름 그대로 JSON 데이터를 token으로 변환하는 방식이다.
+
+```python
+POST /auth HTTP/1.1
+Host: localhost:5000
+Content-Type: application/json
+
+{
+	"username": "joe",
+	"password": "password"
+}
+```
+
+- 사용자 아이디는 "joe"이고 비밀번호는 "password"이다
+- HTTP Post 요청을 /auth 엔드포인트에 전송한다.
+
+```python
+{
+	user_id = 1
+}
+```
+
+- access token을 받은 프론트엔드가 쿠키 등에 access token을 저장하고 있다가 요청 시 access token을 첨부해 보낸다. 그러면 백엔드 api 서버는 access token을 복호화해서 json 데이터를 얻을 수 있다.
+- 단순 json 데이터를 사용하면 해킹 가능성이 있다. jwt에는 단순 데이터 전송 기능 이외에 검증의 기능도 가지고 있다. 백엔드 api 서버는 자신이 생성한 jwt인지 아닌지 확인할 수 있는 기능을 제공한다.
+
+### JWT 구조
+
+- header
+- payload
+- signature
+
+```python
+xxxxx.yyyyy.zzzzz
+```
+
+- x 부분은 헤더이고 y 부분은 payoad이며 z 부분은 signature다. 각 부분은 . 으로 분리한다.
+
+header
+
+- 헤더는 두 부분으로 되어 있다. 토큰 타입, 해시 알고리즘
+
+```python
+{
+	"alg": "HS256",
+	"typ": "JWT"
+}
+```
+
+payload
+
+- jwt를 통해 실제로 서버 간에 전송하고자 하는 데이터 부분.
+
+```python
+{
+	"user_id": 2
+	"exp" : 1539517391
+}
+```
+
+- 중요한 부분은 payload는 누구나 복원 가능하기 때문에 중요한 정보는 넣지 않아야 한다.
+
+signature
+
+- jwt가 원본 그대로라는 것을 확인하는데 사용하는 부분
+- Base64URL 코드화된 header와 payload 그리고 jwt secret를 헤더에 지정된 암호화 알고리즘으로 암호화 하여 전송한다. (복호화 가능한 암호)
+
+### PyJWT
+
+```python
+pip install PyJWT
+```
+
+```python
+import jwt
+data_to_encode = {'some':'payload'}
+encryption_secret = 'secrete'
+algorithm = 'HS256'
+encoded = jwt.encode(data_to_encode, encryption_secret, algorithm=algorithm)
+jwt.decode(encoded, encryption_secret, algorithms=[algorithm])
+```
+
+## 인증 엔드포인트 구현하기
