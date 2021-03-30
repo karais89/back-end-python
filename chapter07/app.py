@@ -1,7 +1,9 @@
 from flask import Flask, jsonify, request, current_app
 from flask.json import JSONEncoder
 from sqlalchemy import create_engine, text
-
+import bcrypt
+import jwt
+import datetime
 
 # Defalut JSON encoder는 set을 JSON으로 변환할 수 없다.
 # 그러므로 커스텀 인코더를 작성하여 set을 list로 변환하여
@@ -121,10 +123,42 @@ def create_app(test_config=None):
     @app.route("/sign-up", methods=['POST'])
     def sign_up():
         new_user = request.json
+        new_user['password'] = bcrypt.hashpw(
+            new_user['password'].encode('UTF-8'),
+            bcrypt.gensalt()
+        )
         new_user_id = insert_user(new_user)
         new_user = get_user(new_user_id)
 
         return jsonify(new_user)
+
+    # 로그인
+    @app.route('/login', methods=['POST'])
+    def login():
+        credential = request.json
+        email = credential['email']
+        password = credential['password']
+
+        row = current_app.database.execute(text("""
+            SELECT id, hashed_password
+            FROM users
+            WHERE email = :email
+        """), {'email': email}).fetchone()
+
+        if row and bcrypt.checkpw(password.encode('UTF-8'), row['hashed_password'].encode('UTF-8')):
+            user_id = row['id']
+            payload = {
+                'user_id': user_id,
+                'exp': datetime.utcnow() + datetime.timedelta(seconds=60 * 60 * 24)
+            }
+            token = jwt.encrypt(payload, app.config['JWT_SECRET_KEY'], 'HS256')
+
+            return jsonify({
+                'access_token': token.decode('UTF-8')
+            })
+        else:
+            return '', 401
+
 
     @app.route('/tweet', methods=['POST'])
     def tweet():
