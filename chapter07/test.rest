@@ -1,0 +1,19 @@
+### sign-up
+POST http://localhost:5000/sign-up
+Content-Type: application/json
+
+{
+  "name": "송은우",
+  "email": "songew3@gmail.com",
+  "password": "test1234",
+  "profile": "software engineer. book author"
+}
+
+### login
+POST http://localhost:5000/login
+Content-Type: application/json
+
+{
+  "email": "songew3@gmail.com",
+  "password": "test1234"
+}

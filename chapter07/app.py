@@ -149,12 +149,12 @@ def create_app(test_config=None):
             user_id = row['id']
             payload = {
                 'user_id': user_id,
-                'exp': datetime.utcnow() + datetime.timedelta(seconds=60 * 60 * 24)
+                'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=60 * 60 * 24)
             }
-            token = jwt.encrypt(payload, app.config['JWT_SECRET_KEY'], 'HS256')
+            token = jwt.encode(payload, app.config['JWT_SECRET_KEY'], 'HS256')
 
             return jsonify({
-                'access_token': token.decode('UTF-8')
+                'access_token': token
             })
         else:
             return '', 401
