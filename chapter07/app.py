@@ -6,7 +6,7 @@ import jwt
 import datetime
 from functools import wraps
 from flask import Response, g
-
+from flask_cors import CORS
 
 # Defalut JSON encoder는 set을 JSON으로 변환할 수 없다.
 # 그러므로 커스텀 인코더를 작성하여 set을 list로 변환하여
@@ -144,6 +144,8 @@ def login_required(f):
 def create_app(test_config=None):
     app = Flask(__name__)
 
+    CORS(app)
+
     app.json_encoder = CustomJSONEncoder
 
     if test_config is None:
@@ -190,6 +192,7 @@ def create_app(test_config=None):
             token = jwt.encode(payload, app.config['JWT_SECRET_KEY'], 'HS256')
 
             return jsonify({
+                'user_id': user_id,
                 'access_token': token
             })
         else:
@@ -216,10 +219,22 @@ def create_app(test_config=None):
             'timeline': get_timeline(user_id)
         })
 
+    @app.route('/timeline', methods=['GET'])
+    @login_required
+    def user_timeline():
+        user_id = g.user_id
+
+        return jsonify({
+            'user_id': user_id,
+            'timeline': get_timeline(user_id)
+        })
+
     @app.route('/follow', methods=['POST'])
     @login_required
     def follow():
         payload = request.json
+        payload['id'] = g.user_id
+
         insert_follow(payload)
 
         return '', 200
@@ -228,6 +243,8 @@ def create_app(test_config=None):
     @login_required
     def unfollow():
         payload = request.json
+        payload['id'] = g.user_id
+
         insert_unfollow(payload)
 
         return '', 200
