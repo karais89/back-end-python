@@ -103,6 +103,19 @@ def get_timeline(user_id):
     } for tweet in timeline]
 
 
+def get_user_id_and_password(email):
+    row = current_app.database.execute(text("""
+        SELECT id, hashed_password
+        FROM users
+        WHERE email = :email
+    """), {'email': email}).fetchone()
+
+    return {
+        'id': row['id'],
+        'hashed_password': row['hashed_password']
+    } if row else None
+
+
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -165,15 +178,11 @@ def create_app(test_config=None):
         credential = request.json
         email = credential['email']
         password = credential['password']
+        user_credential = get_user_id_and_password(email)
 
-        row = current_app.database.execute(text("""
-            SELECT id, hashed_password
-            FROM users
-            WHERE email = :email
-        """), {'email': email}).fetchone()
-
-        if row and bcrypt.checkpw(password.encode('UTF-8'), row['hashed_password'].encode('UTF-8')):
-            user_id = row['id']
+        if user_credential and bcrypt.checkpw(password.encode('UTF-8'),
+                                              user_credential['hashed_password'].encode('UTF-8')):
+            user_id = user_credential['id']
             payload = {
                 'user_id': user_id,
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(seconds=60 * 60 * 24)
@@ -185,7 +194,6 @@ def create_app(test_config=None):
             })
         else:
             return '', 401
-
 
     @app.route('/tweet', methods=['POST'])
     @login_required
@@ -213,7 +221,7 @@ def create_app(test_config=None):
     def follow():
         payload = request.json
         insert_follow(payload)
-        
+
         return '', 200
 
     @app.route('/unfollow', methods=['POST'])
