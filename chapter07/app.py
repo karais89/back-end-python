@@ -4,6 +4,9 @@ from sqlalchemy import create_engine, text
 import bcrypt
 import jwt
 import datetime
+from functools import wraps
+from flask import Response, g
+
 
 # Defalut JSON encoder는 set을 JSON으로 변환할 수 없다.
 # 그러므로 커스텀 인코더를 작성하여 set을 list로 변환하여
@@ -100,6 +103,30 @@ def get_timeline(user_id):
     } for tweet in timeline]
 
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        access_token = request.headers.get('Authorization')
+        if access_token is not None:
+            try:
+                payload = jwt.decode(access_token, current_app.config['JWT_SECRET_KEY'], 'HS256')
+            except jwt.InvalidTokenError:
+                payload = None
+
+            if payload is None:
+                return Response(status=400)
+
+            user_id = payload['user_id']
+            g.user_id = user_id
+            g.user = get_user(user_id) if user_id else None
+        else:
+            return Response(status=401)
+
+        return f(*args, **kwargs)
+
+    return decorated_function
+
+
 # create_app이라는 함수 정의. Flask가 create_app이라는 함수를 자동으로 팩토리 함수로 인식함
 def create_app(test_config=None):
     app = Flask(__name__)
@@ -161,8 +188,10 @@ def create_app(test_config=None):
 
 
     @app.route('/tweet', methods=['POST'])
+    @login_required
     def tweet():
         user_tweet = request.json
+        user_tweet['id'] = g.user_id
         tweet = user_tweet['tweet']
 
         if len(tweet) > 300:
@@ -180,6 +209,7 @@ def create_app(test_config=None):
         })
 
     @app.route('/follow', methods=['POST'])
+    @login_required
     def follow():
         payload = request.json
         insert_follow(payload)
@@ -187,6 +217,7 @@ def create_app(test_config=None):
         return '', 200
 
     @app.route('/unfollow', methods=['POST'])
+    @login_required
     def unfollow():
         payload = request.json
         insert_unfollow(payload)

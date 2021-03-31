@@ -17,3 +17,34 @@ Content-Type: application/json
   "email": "songew3@gmail.com",
   "password": "test1234"
 }
+
+### tweet
+POST http://localhost:5000/tweet
+Authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo0LCJleHAiOjE2MTcyODUzNjl9.2xSJcEF4cW2vfHgh84sKopUcKTMVqSlTX2s6pmtzeyI
+Content-Type: application/json
+
+{
+  "id": 4,
+  "tweet": "My First Tweet"
+}
+
+### follow
+POST http://localhost:5000/follow
+Authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo0LCJleHAiOjE2MTcyODUzNjl9.2xSJcEF4cW2vfHgh84sKopUcKTMVqSlTX2s6pmtzeyI
+Content-Type: application/json
+
+{
+  "id": 4,
+  "follow": 1
+}
+
+### unfollow
+
+POST http://localhost:5000/unfollow
+Authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjo0LCJleHAiOjE2MTcyODUzNjl9.2xSJcEF4cW2vfHgh84sKopUcKTMVqSlTX2s6pmtzeyI
+Content-Type: application/json
+
+{
+  "id": 4,
+  "unfollow": 1
+}

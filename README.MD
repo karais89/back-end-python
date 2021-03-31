@@ -887,4 +887,37 @@ encoded = jwt.encode(data_to_encode, encryption_secret, algorithm=algorithm)
 jwt.decode(encoded, encryption_secret, algorithms=[algorithm])
 ```
 
-## 인증 엔드포인트 구현하기
+```python
+@app.route('/tweet', methods=['POST'])
+@login_required
+def tweet():
+    user_tweet = request.json
+    user_tweet['id'] = g.user_id
+    tweet = user_tweet['tweet']
+
+    if len(tweet) > 300:
+        return '300자를 초과했습니다', 400
+
+    insert_tweet(user_tweet)
+
+    return '', 200
+
+@app.route('/follow', methods=['POST'])
+@login_required
+def follow():
+    payload = request.json
+    insert_follow(payload)
+    
+    return '', 200
+
+@app.route('/unfollow', methods=['POST'])
+@login_required
+def unfollow():
+    payload = request.json
+    insert_unfollow(payload)
+
+    return '', 200
+```
+
+- tweet의 경우 jwt 토큰에서 받은 id를 넘겨 받는다.
+- 이후 과정에서는 로그인 후 access token을 받고 해당 엔드포인트에서 access token을 같이 넘겨줘야 정상 동작한다.
