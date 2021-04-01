@@ -8,6 +8,7 @@ from functools import wraps
 from flask import Response, g
 from flask_cors import CORS
 
+
 # Defalut JSON encoder는 set을 JSON으로 변환할 수 없다.
 # 그러므로 커스텀 인코더를 작성하여 set을 list로 변환하여
 # JSON으로 변환 가능하게 해주어야 한다.
