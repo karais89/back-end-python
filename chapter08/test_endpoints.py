@@ -1,11 +1,52 @@
 import pytest
 import config
 import json
+import bcrypt
 
 from sqlalchemy import create_engine, text
 from app import create_app
 
 database = create_engine(config.test_config['DB_URL'], encoding='utf-8', max_overflow=0)
+
+
+# pytest 에서 자동으로 실행된다 - 테스트가 실행 될때
+def setup_function():
+    # Create a test user
+    hashed_password = bcrypt.hashpw(
+        b"test password",
+        bcrypt.gensalt()
+    )
+    new_user = {
+        'id': 1,
+        'name': '송은우',
+        'email': 'songew@gmail.com',
+        'profile': 'test password',
+        'hashed_password': hashed_password
+    }
+    database.execute(text("""
+        INSERT INTO users (
+            id,
+            name,
+            email,
+            profile,
+            hashed_password
+        ) VALUES (
+            :id,
+            :name,
+            :email,
+            :profile,
+            :hashed_password
+        )
+    """), new_user)
+
+
+# pytest 에서 자동으로 실행된다 - 테스트가 종료 될때
+def teardown_function():
+    database.execute(text("SET FOREIGN_KEY_CHECKS=0"))  # 외부키가 걸여 있으면 데이터를 삭제할 수 없다. 임의로 비활성화 (테스트 용도)
+    database.execute(text("TRUNCATE users"))
+    database.execute(text("TRUNCATE tweets"))
+    database.execute(text("TRUNCATE users_follow_list"))
+    database.execute(text("SET FOREIGN_KEY_CHECKS=1"))
 
 
 @pytest.fixture
@@ -22,25 +63,6 @@ def test_ping(api):
 
 
 def test_tweet(api):
-    # 테스트 사용자 생성
-    new_user = {
-        'id': 1,
-        'email': 'songew@gmail.com',
-        'password': 'test password',
-        'name': '송은우',
-        'profile': 'test profile'
-    }
-    resp = api.post(
-        '/sign-up',
-        data=json.dumps(new_user),
-        content_type='application/json'
-    )
-    assert resp.status_code == 200
-
-    # Get the id of the new user
-    resp_json = json.loads(resp.data.decode('utf-8'))
-    new_user_id = resp_json['id']
-
     # 로그인
     resp = api.post(
         '/login',
@@ -63,7 +85,7 @@ def test_tweet(api):
     assert resp.status_code == 200
 
     # tweet 확인
-    resp = api.get(f'/timeline/{new_user_id}')
+    resp = api.get(f'/timeline/1')
     tweets = json.loads(resp.data.decode('utf-8'))
 
     assert resp.status_code == 200
