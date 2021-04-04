@@ -921,3 +921,198 @@ def unfollow():
 
 - tweet의 경우 jwt 토큰에서 받은 id를 넘겨 받는다.
 - 이후 과정에서는 로그인 후 access token을 받고 해당 엔드포인트에서 access token을 같이 넘겨줘야 정상 동작한다.
+
+
+# Chapter 8. unit test
+
+- 개발한 시스템이 정상적으로 동작하는지 확인 하는 과정인 테스트에 대해 알아보자.
+- 다양한 테스트 방법 중 단위 테스트에 대해서 알아볼 예정
+
+## 테스트 자동화의 중요성
+
+> 시스템 테스트에서 가장 중요한 것은 테스트의 자동화이다.
+
+테스트를 최대한 자동화해서 테스트가 반복적으로, 그리고 자주 실행될 수 있도록 한다.
+
+또한 항상 정확하게, 그리고 빠지는 부분이 없도록 테스트가 실행되도록 하는 것이 중요하다.
+
+시스템 테스트 방법 3가지
+
+- UI test / End-To-End test
+- integration test
+- unit test
+
+## UI test / End-To-End Test
+
+- 시스템의 UI를 통해서 테스트 하는 것
+- 사용자가 실제로 시스템을 사용하는 방식과 가장 동일하게 테스트 할 수 있다.
+- 시간이 많이 소모되는 테스트 이다. 자동화가 까다롭다.
+- 일반적으로 비중 10%
+
+## integration test
+
+- 테스트 하고자 하는 서버를 실제로 실행시키고, 테스트 HTTP 요청등을 실행하여 테스트 해보는 방식
+- 테스트 하고자 하는 해당 시스템만 실행시켜 테스트한다.
+- UI test 보다 테스트 설정이나 실행 시간이 더 짧고 간단하다.
+- 일반적으로 비중 20%
+
+## unit test
+
+- 코드를 직접 테스트 한다는 개념
+- 코드를 테스트 하는 코드를 작성해서 테스트 한다.
+- 코드로 코드를 테스트하므로 자동화는 100% 가능하다.
+- 언제든지 반복적으로 실행시킬 수 있다. 실행 속도도 빠르다.
+- 전체적인 부분을 테스트하는데는 제한적이다.
+- 일반적으로 비중 70%
+
+## pytest
+
+```python
+pip install pytest
+```
+
+- 파일 이름의 앞부분에 test_ 라고 되어 있는 파일들만 테스트 파일로 인식하고 실행한다.
+- 함수 이름 앞부분에 test_ 라고 되어 있는 함수들만 실제 unit test 함수로 인식하고 실행한다.
+
+```python
+# test_multiply_by_two.py
+
+def multiply_by_two(x):
+	return x * 2
+
+def test_multiply_by_two():
+	assert multiply_by_two(4) == 7
+```
+
+- pytest 명령어 실행
+
+- 파이참에서 따로 unit test 하는 방법이 있을 것 같은데 한번 리서치 필요할 것 같다.
+    - 파이썬 3.x 부터는 unittests가 내장되어 있지만, 저자는 pytest 가 더 쉬워서 해당 모듈을 추천
+    - 파이참에서 default test runner에서도 pytest 설정 가능
+    - 우선 개별로 실행도 가능하고, 터미널에서 전체 실행해도 괜찮을 것 같긴하다. 편함
+
+## 미니터 API unit test
+
+- unit test는 일반적으로 함수를 테스트하는 코드이다.
+- Flask 에서는 엔드포인트들 또한 함수로 구현되어 있다.
+- 앞으로 구현할 unit test는 엔드포인트를 직접 테스트할 수 있다는 장점이 있다.
+- 테스트 데이터베이스를 만들어야 된다.
+    - 여기서 약간의 난관이 있음.
+    - test 라는 유저를 만들어야 됨 (mysql 관리자)
+    - DB 설정은 6장 참고
+
+    ```sql
+    create database test_db // 데이터베이스 생성
+    create user 'test'@'%' identified by 'password'; //  사용자 생성
+    grant all privileges on test_db.* to 'test'@'%'; //  특정 DB에 대한 모든 권한 부여.
+    ```
+
+- flask에서는 unit test에서 엔드포인트들을 테스트 할 수 있는 기능을 제공한다.
+
+### ping 엔드포인트 유닛 테스트 하기
+
+```python
+import pytest
+from app import create_app
+
+@pytest.fixture
+def api():
+    app = create_app(config.test_config)
+    app.config["TEST"] = True
+    api = app.test_client()
+    return api
+```
+
+- pytest.fixture 데코레이터 적용
+    - pytest가 알아서 같은 이름의 함수의 리턴 값을 해당 인자에 넣어 준다.
+- TEST 옵션을 true로 설정하여 flask가 에러가 났을 경우 http 요청 오류 부분은 핸들링하지 않게 한다.
+- test_client 함수를 호출해서 테스트용 클라이언트를 생성한다. 테스트용 클라이언트를 사용하여 uri 기반으로 원하는 엔드포인트들 호출할 수 있게 된다.
+
+```python
+def test_ping(api):
+    resp = api.get('/ping')
+    assert b'pong' in resp.data
+```
+
+- app 인자는 pytest 커맨드를 실행할때 자동으로 넘겨준다 (pytest.fixture 설정한 함수 이름)
+- test_client의 get 메소드를 통해서 get 요청을 /ping uri와 연결되어 있는 엔드포인트에 보낸다.
+- b는 바이트로 변환한다는 의미이고 resp.data는 바이트 형태라 바이트로 변환해서 비교하는 것
+
+### tweet 테스트 하기
+
+- tweet를 생성하기 위해서는 먼저 사용자가 있어야 한다.
+- 해당 사용자로 인증 절차를 거친 후 access token을 받은 후 tweet 엔드포인트를 호출해야 한다.
+
+```python
+def test_tweet(api):
+    # 테스트 사용자 생성
+    new_user = {
+        'email': 'songew@gmail.com',
+        'password': 'test password',
+        'name': '송은우',
+        'profile': 'test profile'
+    }
+    resp = api.post(
+        '/sign-up',
+        data=json.dumps(new_user),
+        content_type='application/json'
+    )
+    assert resp.status_code == 200
+
+    # Get the id of the new user
+    resp_json = json.loads(resp.data.decode('utf-8'))
+    new_user_id = resp_json['id']
+
+    # 로그인
+    resp = api.post(
+        '/login',
+        data=json.dumps({'email': 'songew@gmail.com', 'password': 'test password'}),
+        content_type='application/json'
+    )
+    resp_json = json.loads(resp.data.decode('utf-8'))
+    access_token = resp_json['access_token']
+
+    # tweet
+    resp = api.post(
+        '/tweet',
+        data=json.dumps({'tweet': 'Hello World!'}),
+        content_type='application/json',
+        headers={'Authorization': access_token}
+    )
+    assert resp.status_code == 200
+
+    # tweet 확인
+    resp = api.get(f'/timeline/{new_user_id}')
+    tweets = json.loads(resp.data.decode('utf-8'))
+
+    assert resp.status_code == 200
+    assert tweets == {
+        'user_id': 1,
+        'timeline': [
+            {
+                'user_id': 1,
+                'tweet': 'Hello World!'
+            }
+        ]
+    }
+```
+
+- tweet 엔드포인트를 호출하기 위해서는 사전에 다양한 엔드포인트 들을 호출해야 한다.
+- pytest에서는 각 테스트 실행 전 바로 전, 그리고 바로 후에 실행할 코드를 지정해 놓아 자동으로 적용시킬 수 있게 해준다.
+    - setup_function, teardown_function
+
+```python
+test_config = {
+    'DB_URL': f"mysql+mysqlconnector://{test_db['user']}:{test_db['password']}@{test_db['host']}:{test_db['port']}/{test_db['database']}?charset=utf8",
+    'JWT_SECRET_KEY': 'secret key'
+}
+```
+
+- config 설정에 jwt_secret_key 추가
+
+### unit test의 중요성
+
+- unit test는 중요하다.
+- test 코드를 구현하는 것이 실제 코드를 구현하는 것 만큼 혹은 그 이상 공수가 든다.
+- 책의 저자는 개인적으로 같이 일하는 개발자들에게 항상 실제 개발하는데 총 10시간이 걸린다면 5시간은 실제 개발에 사용하고, 나머지 5시간은 unit test를 구현하는 데 사용하라고 한다.
+- unit test는 개발자들의 방패이다.
